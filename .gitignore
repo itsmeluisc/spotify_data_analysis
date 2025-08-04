@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+
+#ignore virtual environment directories
+venv/ 
+.env/
+
+#Ignores a log file created from pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+#
+.tox/
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/ 
+
+# Data
+data/raw/*
+data/processed/*
+*.db
+config.py
+.DS_Store
+
+# Output
+output/
+
+# IDE specific files
+.vscode/
