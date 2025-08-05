@@ -235,7 +235,7 @@ All database interactions are handled using a custom-defined class (see -> [src/
 
 A first correlation analysis was conducted across the entire dataset:
 
-![Alt text](../output/correlation_matrix.png)
+![Alt text](output/correlation_matrix.png)
 
 To interpret the heatmap, the following correlation strength guide should be used:
 
@@ -268,7 +268,7 @@ Interestingly, even the correlation between daily_rank and popularity is weak, m
 #### United States Only
 Correlation matrix for the United States:
 
-![Alt text](../output/correlation_matrix_United%20States.png)
+![Alt text](output/correlation_matrix_United%20States.png)
 
 Results are consistent with the global data. Therefore, a deeper analysis is necessary to uncover more detailed patterns.
 
@@ -276,7 +276,7 @@ Results are consistent with the global data. Therefore, a deeper analysis is nec
 
 To determine where static attributes are strongly correlated with popularity, a threshold-based line plot was created. First, we checked if any combination across all countries exceeded a very strong correlation (>|0.7|) with popularity:
 
-![Alt text](../output/correlation_07_global.png)
+![Alt text](output/correlation_07_global.png)
 
 Findings:
 
@@ -286,17 +286,17 @@ Findings:
 
 Lowering the threshold to include strong correlations (>|0.5|):
 
-![Alt text](../output/correlation_05_global.png)
+![Alt text](output/correlation_05_global.png)
 
 This produces many overlapping lines. The legend shows countries where at least one static feature was strongly correlated with popularity at some point in the year. It suggests that static parameters can sometimes be strong predictors of popularity depending on time and location.
 
 For the United States, the correlationreveals weak relationships across most variables:
 
-![Alt text](../output/correlation_US_0.1.png)
+![Alt text](output/correlation_US_0.1.png)
 
 Narrowing focus to ≥ 0.2:
 
-![Alt text](../output/correlation_US_0.2.png).
+![Alt text](output/correlation_US_0.2.png).
 
 Findings:
 
@@ -309,7 +309,7 @@ This suggests certain song attributes perform better during specific times of th
 #### Explicit Content Analysis
 The final analysis examines whether explicit content influences song popularity across countries. This was calculated using the average popularity of unique songs by country and visualized with cartopy:
 
-![Alt text](../output/world_map_explicit_popularity.png)
+![Alt text](output/world_map_explicit_popularity.png)
 
 Findings:
 
