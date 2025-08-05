@@ -87,7 +87,7 @@ The dataset used for this analysis is sourced from Kaggle: [Top Spotify Songs in
 4.  **Database Setup:**
     * Ensure your PostgreSQL database is running.
     * Update database connection details in `config.py` (or your equivalent config file).
-    * Modify the file path in [sql/02_ingest_raw_data.sql](../sql/02_ingest_raw_data.sql) to point to your downloaded CSV. [Top Spotify Songs in 73 Countries (Daily Updated)](https://www.kaggle.com/datasets/asaniczka/top-spotify-songs-in-73-countries-daily-updated)
+    * Modify the file path in [sql/02_ingest_raw_data.sql](sql/02_ingest_raw_data.sql) to point to your downloaded CSV. [Top Spotify Songs in 73 Countries (Daily Updated)](https://www.kaggle.com/datasets/asaniczka/top-spotify-songs-in-73-countries-daily-updated)
 
 ## Part 3 : Data Analisis 
 ### Introduction
@@ -95,17 +95,78 @@ The dataset used in this project was downloaded from [Top Spotify Songs in 73 Co
 
 Subsequently, a Jupyter Notebook was used to perform data visualization, deeper analysis, and generate meaningful plots. This structured approach enables both exploratory and targeted analysis of how various musical features relate. 
 
-<div style="overflow-x: auto">
-| id      | name              | artists                             | daily_rank | country | snapshot_date | popularity | is_explicit | danceability | loudness  | tempo  |
-|---------|-------------------|-----------------------------------|------------|---------|---------------|------------|-------------|--------------|-----------|--------|
-| 885393  | Sofa urtubörn     | Hafdís Huld                       | 30         | IS      | 2024-09-21    | 44         | False       | 0.715        | -13.713   | 119.95 |
-| 885394  | Too Sweet         | Hozier                            | 31         | IS      | 2024-09-21    | 46         | False       | 0.74         | -5.446    | 117.03 |
-| 885395  | Ljós              | Hafdís Huld                       | 32         | IS      | 2024-09-21    | 43         | False       | 0.742        | -13.086   | 146.17 |
-| 885396  | Til í allt, Pt. III| Friðrik Dór, Herra Hnetusmjör... | 33         | IS      | 2024-09-21    | 44         | False       | 0.863        | -7.103    | 99.99  |
-| 885397  | Bíum bíum bambaló | Hafdís Huld                       | 34         | IS      | 2024-09-21    | 44         | False       | 0.777        | -14.009   | 99.98  |
-</div>
+### Data Cleaning 
+This phase has been, by far, the most time-consuming part of the project. A new table named spotify_songs_staging was created with all columns defined as TEXT (see -> [sql/01_create_staging_table.sql](sql/01_create_staging_table.sql)). This decision was intentional: by loading all data as text initially, we eliminated the risk of type-related loading errors and retained full flexibility during data exploration and transformation. This is a widely used approach in data processing pipelines, especially when dealing with inconsistent or messy datasets, as it allows early detection of malformed values before imposing strict type constraints.
+
+The raw data was then ingested into the staging table (see -> [sql/02_ingest_raw_data.sql](sql/02_ingest_raw_data.sql)), and a first-pass quality analysis was performed (see -> [sql/07_analize_raw_data_quality.sql](sql/07_analize_raw_data_quality.sql)). The table below summarizes the initial results:
 
 
+| variable_name       | empty_string_count | null_count |
+|---------------------|--------------------|------------|
+| spotify_id          | 0                  | 0          |
+| time_signature      | 0                  | 0          |
+| tempo               | 0                  | 0          |
+| valence             | 0                  | 0          |
+| liveness            | 0                  | 0          |
+| instrumentalness    | 0                  | 0          |
+| acousticness        | 0                  | 0          |
+| speechiness         | 0                  | 0          |
+| artists             | 29                 | 0          |
+| daily_movement      | 0                  | 0          |
+| country             | 28908              | 0          |
+| popularity          | 0                  | 0          |
+| duration_ms         | 0                  | 0          |
+| album_release_date  | 659                | 0          |
+| energy              | 0                  | 0          |
+| loudness            | 0                  | 0          |
+| name                | 30                 | 0          |
+| daily_rank          | 0                  | 0          |
+| weekly_movement     | 0                  | 0          |
+| snapshot_date       | 0                  | 0          |
+| is_explicit         | 0                  | 0          |
+| album_name          | 822                | 0          |
+| danceability        | 0                  | 0          |
+| key                 | 0                  | 0          |
+| mode                | 0                  | 0          |
+
+
+A high number of empty string values was identified, particularly in the country column. This is expected behavior since global Top 50 tracks, which are common in the dataset, have no country associated. Other columns such as album_name, album_release_date, and some artist names also exhibited similar issues.
+
+The next step, defined in (see -> [sql/03_clean_and_transform_staging.sql](sql/03_clean_and_transform_staging.sql)), involved converting all empty strings to NULL values. After that, each column was cast to the most efficient and appropriate data type based on the Spotify documentation [Spotify Web API: Get Audio Features](https://developer.spotify.com/documentation/web-api/reference/get-audio-features). The transformation was performed using the following query:
+
+```sql
+ALTER TABLE spotify_songs_staging
+    ALTER COLUMN spotify_id TYPE CHAR(22) USING spotify_id::CHAR(22), -- Explicitly casts existing values to CHAR(22)
+    ALTER COLUMN daily_rank TYPE SMALLINT USING daily_rank::SMALLINT, -- smallint: Custom rank (not from Spotify)
+    ALTER COLUMN daily_movement TYPE SMALLINT USING daily_movement::SMALLINT, -- smallint: Custom daily rank movement
+    ALTER COLUMN weekly_movement TYPE SMALLINT USING weekly_movement::SMALLINT, -- smallint: Custom weekly rank movement
+    ALTER COLUMN country TYPE CHAR(2) USING country::CHAR(2), -- string: ISO 3166-1 alpha-2 country code
+    ALTER COLUMN snapshot_date TYPE DATE USING NULLIF(snapshot_date, '')::DATE, -- date: Snapshot date for the metrics
+    ALTER COLUMN popularity TYPE SMALLINT USING popularity::SMALLINT, -- integer: Popularity (0–100)
+    ALTER COLUMN is_explicit TYPE BOOLEAN USING is_explicit::BOOLEAN, -- boolean: True if track is marked explicit
+    ALTER COLUMN duration_ms TYPE INTEGER USING duration_ms::INTEGER, -- integer: Track duration in milliseconds
+    ALTER COLUMN album_name TYPE TEXT, -- string: Album name
+    ALTER COLUMN album_release_date TYPE DATE USING NULLIF(album_release_date, '')::DATE, -- date: Album release date
+    ALTER COLUMN danceability TYPE REAL USING danceability::REAL, -- float: 0.0–1.0; dance suitability
+    ALTER COLUMN energy TYPE REAL USING energy::REAL, -- float: 0.0–1.0; perceptual intensity
+    ALTER COLUMN key TYPE SMALLINT USING key::SMALLINT, -- integer: Musical key (-1 = unknown, 0 = C, ..., 11 = B)
+    ALTER COLUMN loudness TYPE REAL USING loudness::REAL, -- float: Average loudness in dB
+    ALTER COLUMN mode TYPE BOOLEAN USING mode::BOOLEAN, -- boolean: 0 = minor, 1 = major
+    ALTER COLUMN speechiness TYPE REAL USING speechiness::REAL, -- float: 0.0–1.0; presence of spoken words
+    ALTER COLUMN acousticness TYPE REAL USING acousticness::REAL, -- float: 0.0–1.0; confidence the track is acoustic
+    ALTER COLUMN instrumentalness TYPE REAL USING instrumentalness::REAL, -- float: 0.0–1.0; likelihood of being instrumental
+    ALTER COLUMN liveness TYPE REAL USING liveness::REAL, -- float: 0.0–1.0; probability the track is live
+    ALTER COLUMN valence TYPE REAL USING valence::REAL, -- float: 0.0–1.0; musical positiveness
+    ALTER COLUMN tempo TYPE REAL USING tempo::REAL, -- float: Beats per minute
+    ALTER COLUMN time_signature TYPE SMALLINT USING time_signature::SMALLINT;
+```
+After the type conversions, a consistency check was performed. It was observed that some songs (identified by spotify_id) had inconsistent name or artist values across different rows. To address this, values were standardized so that each spotify_id had a unique, consistent name and artist.
+
+To address missing values, a backfilling strategy was employed using the most recent non-null values for each spotify_id, limited to non-time-dependent fields. For example, numeric audio features such as danceability, energy, and valence were filled using this method. This ensured that every song maintained consistent metadata throughout the dataset.
+
+Additionally, all rows with missing country values were set to 'ZZ', a placeholder indicating global data. Finally, all rows where name remained NULL were removed from the dataset, as the track name is considered essential for analysis.
+
+This multi-step cleaning and transformation process laid the foundation for building a reliable and consistent analytical dataset.
 
 ### Contact
 
