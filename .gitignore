@@ -30,7 +30,7 @@ config.py
 .DS_Store
 
 # Output
-output/
+#output/
 
 # IDE specific files
 .vscode/

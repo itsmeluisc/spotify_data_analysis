@@ -13,6 +13,17 @@ Decoding the DNA of Hit Songs
     - [Installation](#installation)  
     - [Database Setup](#database-setup)  
 3. [Data Analysis](#part-3--data-analisis)  
+    - [Introduction](#introduction)  
+    - [Data Cleaning](#data-cleaning)  
+    - [Data Analysis](#data-analisis)  
+    - [Jupyter Notebook](#jupyter-notebook)  
+    - [Interpretation of Correlation Strength](#interpretation-of-correlation-strength)  
+    - [Static Parameter](#static-parameter)  
+    - [Dynamic](#dynamic)  
+    - [United States Only](#united-states-only)  
+    - [Monthly Correlation by Country](#monthly-correlation-by-country)  
+    - [Explicit Content Analysis](#explicit-content-analysis)  
+    - [Conclusion](#conclusion-what-makes-a-song-popular-untangling-the-chaos-with-a-data-driven-approach)  
 4. [Contact](#contact)
 
 ## Part 1: Project Overview
@@ -160,16 +171,183 @@ ALTER TABLE spotify_songs_staging
     ALTER COLUMN tempo TYPE REAL USING tempo::REAL, -- float: Beats per minute
     ALTER COLUMN time_signature TYPE SMALLINT USING time_signature::SMALLINT;
 ```
-After the type conversions, a consistency check was performed. It was observed that some songs (identified by spotify_id) had inconsistent name or artist values across different rows. To address this, values were standardized so that each spotify_id had a unique, consistent name and artist.
+After completing the type conversions, a consistency check was performed. It was found that some songs (identified by spotify_id) had inconsistent values for name and artists across different rows. To resolve this, those values were standardized so that each spotify_id had a unique and consistent name and artist.
 
-To address missing values, a backfilling strategy was employed using the most recent non-null values for each spotify_id, limited to non-time-dependent fields. For example, numeric audio features such as danceability, energy, and valence were filled using this method. This ensured that every song maintained consistent metadata throughout the dataset.
+To address missing or out of range values, a backfilling strategy was used. This strategy applied the most recent valid (non-null and within range) value for each spotify_id to fill in missing values, limited to non-time-dependent fields. For example, audio features such as danceability, energy, and valence were filled using this method, ensuring consistent metadata across the dataset.
 
-Additionally, all rows with missing country values were set to 'ZZ', a placeholder indicating global data. Finally, all rows where name remained NULL were removed from the dataset, as the track name is considered essential for analysis.
+All rows with missing country values were set to 'ZZ', a placeholder indicating global data. Additionally, all rows where name remained NULL after processing were removed, as the track name is considered essential for analysis.
 
-This multi-step cleaning and transformation process laid the foundation for building a reliable and consistent analytical dataset.
+This multi step cleaning and transformation process provided a reliable foundation for building a consistent analytical dataset. Some values could not be restored during this process, and while enriching the dataset using the Spotify API would be beneficial, it falls outside the scope of this project.
+
+
+| variable_name      | null_count |
+|--------------------|------------|
+| spotify_id         | 0          |
+| time_signature     | 0          |
+| tempo              | 0          |
+| valence            | 0          |
+| liveness           | 0          |
+| instrumentalness   | 0          |
+| acousticness       | 0          |
+| name               | 0          |
+| daily_rank         | 0          |
+| weekly_movement    | 0          |
+| snapshot_date      | 0          |
+| is_explicit        | 0          |
+| album_name         | 792        |
+| danceability       | 0          |
+| key                | 0          |
+| mode               | 0          |
+| artists            | 0          |
+| daily_movement     | 0          |
+| country            | 0          |
+| popularity         | 0          |
+| duration_ms        | 0          |
+| album_release_date | 630        |
+| energy             | 0          |
+| loudness           | 0          |
+| speechiness        | 0          |
+
+Final data preparation steps included indexing the cleaned table (see -> [sql/04_finalize_and_index_main_table.sql](sql/04_finalize_and_index_main_table.sql)), filtering it to include only records from the year 2024 (see -> [sql/05_create_2024_table.sql](sql/05_create_2024_table.sql)), and casting boolean fields to integers for smoother numerical analysis (see -> [sql/06_final_type_adjustments.sql](sql/06_final_type_adjustments.sql)).
+
+
+### Data Analisis 
+
+The first step in any data analysis project is to understand what the dataset measures, what the values represent, and what relationships are expected. This analysis focuses on how static song attributes (such as loudness or danceability) influence dynamic performance metrics (like daily rank or popularity).
+
+It is important to note that many external factors, such as social media, advertising, or cultural events, may influence a song’s popularity. These external influences are assumed unknown in this analysis.
+
+#### Jupyter Notebook
+
+The analysis was conducted in a Jupyter Notebook (see -> [notebooks/spotify_worldwide_daily_top_50.ipynb](notebooks/spotify_worldwide_daily_top_50.ipynb)). Wherever possible, the notebook was designed to query only the required data from the server instead of loading the entire dataset into memory, which improves performance for large datasets.
+
+This analysis relies heavily on:
+
+- pandas for data manipulation,
+
+- matplotlib and seaborn for visualization,
+
+- pycountry and cartopy for geographic plotting,
+
+- psycopg2 for connecting and querying the local PostgreSQL database.
+
+All database interactions are handled using a custom-defined class (see -> [src/db_client.py](src/db_client.py))..
+
+A first correlation analysis was conducted across the entire dataset:
+
+![Alt text](../output/correlation_matrix.png)
+
+To interpret the heatmap, the following correlation strength guide should be used:
+
+####  Interpretation of Correlation Strength
+
+| Correlation Strength | Range         |
+|----------------------|---------------|
+| **Very Strong**      | ±0.70 to ±1.00 |
+| **Strong**           | ±0.50 to ±0.69 |
+| **Moderate**         | ±0.30 to ±0.49 |
+| **Weak**             | ±0.10 to ±0.29 |
+| **Very Weak**        |  0.00 to ±0.09 |
+
+- Negative correlations (blue on the heatmap) indicate that when one variable is high, the other tends to be low. Keep in mind that low values can sometimes be desirable (e.g., a low daily rank means a better chart position).
+
+- Positive correlations (red/hot on the heatmap) indicate the opposite.
+
+#### Static Parameter 
+At first glance, the strongest positive correlation is between energy and loudness. This suggests that Spotify's energy metric heavily relies on how loud a track feels to the human ear. Additionally, valence (musical positiveness) is moderately positively correlated with both danceability and energy. This indicates that upbeat, energetic tracks tend to feel more positive.
+
+There is also a strong negative correlation between energy and acousticness, suggesting that acoustic songs tend to be less energetic and less loud.
+
+#### Dynamic
+
+Dynamic performance metrics such as daily_rank and popularity show little to no correlation with static features. The highest observed was a weak negative correlation between speechiness and popularity, indicating that tracks with more spoken words tend to be slightly less popular.
+
+Interestingly, even the correlation between daily_rank and popularity is weak, meaning that one does not predict the other well across the full dataset. This implies that external influences likely play a dominant role.
+
+
+#### United States Only
+Correlation matrix for the United States:
+
+![Alt text](../output/correlation_matrix_United%20States.png)
+
+Results are consistent with the global data. Therefore, a deeper analysis is necessary to uncover more detailed patterns.
+
+#### Monthly Correlation by Country
+
+To determine where static attributes are strongly correlated with popularity, a threshold-based line plot was created. First, we checked if any combination across all countries exceeded a very strong correlation (>|0.7|) with popularity:
+
+![Alt text](../output/correlation_07_global.png)
+
+Findings:
+
+- In Bulgaria (December), high energy strongly predicts popularity.
+
+- In Panama (September), low speechiness is strongly associated with popularity.
+
+Lowering the threshold to include strong correlations (>|0.5|):
+
+![Alt text](../output/correlation_05_global.png)
+
+This produces many overlapping lines. The legend shows countries where at least one static feature was strongly correlated with popularity at some point in the year. It suggests that static parameters can sometimes be strong predictors of popularity depending on time and location.
+
+For the United States, the correlationreveals weak relationships across most variables:
+
+![Alt text](../output/correlation_US_0.1.png)
+
+Narrowing focus to ≥ 0.2:
+
+![Alt text](../output/correlation_US_0.2.png).
+
+Findings:
+
+- In July, popular songs tend to have lower speechiness and lower liveness (fewer signs of a live audience).
+
+- In December, less acoustic songs show increased popularity.
+
+This suggests certain song attributes perform better during specific times of the year. Artists could potentially use this insight to plan releases based on their track's characteristics.
+
+#### Explicit Content Analysis
+The final analysis examines whether explicit content influences song popularity across countries. This was calculated using the average popularity of unique songs by country and visualized with cartopy:
+
+![Alt text](../output/world_map_explicit_popularity.png)
+
+Findings:
+
+- Explicit songs are more popular in parts of Asia, especially India.
+
+- In contrast, less explicit songs tend to dominate popularity charts in much of Europe.
+
+#### Conclusion: What Makes a Song Popular?</br> Untangling the Chaos with a Data-Driven Approach
+This project set out to demystify the factors that drive a song's popularity using a structured and scalable data science approach. By integrating raw Spotify Top 50 charts across 72 countries with feature-rich metadata from the Spotify API, and then applying rigorous data cleaning, transformation, and correlation analyses, the project paints a nuanced picture of how various musical attributes relate to public reception.
+
+Several key findings emerged:
+
+- Static song attributes, such as energy, loudness, and danceability, display meaningful correlations among themselves. For example, loudness and energy are strongly positively correlated, suggesting that more intense or "energetic" songs are generally louder.
+
+- Valence, a measure of musical positiveness, tends to increase with danceability and energy, confirming intuitive associations between upbeat moods and rhythmic intensity.
+
+- Acousticness negatively correlates with both loudness and energy, indicating that acoustic songs are generally quieter and less energetic, possibly due to their stripped-down production style.
+
+However, when it comes to dynamic performance metrics like daily chart position and popularity score, the story becomes more complex. These variables showed only weak correlations with static features. This suggests that while certain song characteristics may influence how a track feels or is structured, popularity is largely driven by external factors not captured in this dataset—such as marketing campaigns, playlist placements, social media trends, or cultural events.
+
+Localized insights add another layer to the analysis. For example:
+
+- In Bulgaria (December), high-energy songs strongly predicted popularity.
+
+- In Panama (September), tracks with lower speechiness (fewer spoken words) topped the charts.
+
+- In the United States, speechiness and liveness were mildly negatively correlated with popularity in July, while acousticness saw a positive spike in December.
+
+These seasonal and geographic variations suggest that audience preferences are dynamic and context sensitive, opening the door for artists and producers to time their releases or tailor content more strategically.
+
+Lastly, the analysis of explicit content provided a cultural snapshot: explicit songs are more popular in parts of Asia, particularly India, while Europe leans toward cleaner lyrical content.
+
+##### Final Thoughts
+By combining robust data engineering with domain driven exploratory analysis, this project delivers both a methodological blueprint and actionable insights. While it doesn’t attempt to predict a song’s virality outright, it provides a solid foundation for understanding how musical DNA might influence reception especially when paired with local and temporal context.
+
+Future work could expand by integrating social listening data, playlist dynamics, or real time streaming trends, and by using machine learning models to further explore predictive potential
 
 ### Contact
-
 Luis Castillo - itsmeluisc@gmail.com
 
 Project Link: [https://github.com/itsmeluisc/spotify_data_analysis](https://github.com/itsmeluisc/spotify_data_analysis)
