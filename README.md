@@ -59,7 +59,7 @@ The dataset used for this analysis is sourced from Kaggle: [Top Spotify Songs in
 * Uncovering **geographical** variations in musical explicitness and popularity across different countries.
 
 ### Features
--   **Comprehensive Data Cleaning:** Robust PostgreSQL scripts to handle missing values, inconsistencies, and out-of-range data in the raw Spotify dataset.
+-   **Comprehensive Data Cleaning:** Robust PostgreSQL scripts to handle missing values, inconsistencies, and out of range data in the raw Spotify dataset.
 -   **Music Feature Analysis:** In depth exploration of how Spotify API derived features (e.g., danceability, loudness, explicitness) correlate with song popularity and daily rank.
 -   **Temporal Trend Analysis:** Investigate how song popularity and feature distribution evolve across months (specifically focusing on 2024 data).
 -   **Geographical Popularity Insights:** Uncover variations in musical preferences and chart performance across 72 countries and global charts.
