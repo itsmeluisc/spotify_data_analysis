@@ -33,7 +33,7 @@ This project analyzes a dataset of daily top 50 Spotify songs from 72 countries 
 
 While multiple exploratory analyses are included, the main focus is on understanding how static song attributes (e.g., danceability, loudness, explicitness) relate to dynamic performance metrics (e.g., popularity score, daily chart position). It focuses on understanding the impact of fixed song attributes on listener reception, aiming to shed light on crucial decisions like optimal release timing or predicting a song's acceptance in specific regions.
 
-The initial phase of this project involved extensive data cleaning using PostgreSQL. The raw dataset presented significant challenges, including empty rows, inconsistencies, and out-of-range values. For the subsequent analysis, only data from the year 2024 was extracted to ensure a clear and well-defined study period. The second part of the project utilizes Jupyter Notebooks for in-depth exploration and visualization. All cleaning scripts and analytical notebooks have been structured into a well-organized Python program, also included in this repository.
+The initial phase of this project involved extensive data cleaning using PostgreSQL. The raw dataset presented significant challenges, including empty rows, inconsistencies, and out of range values. For the subsequent analysis, only data from the year 2024 was extracted to ensure a clear and well defined study period. The second part of the project utilizes Jupyter Notebooks for in depth exploration and visualization. All cleaning scripts and analytical notebooks have been structured into a well organized Python program, also included in this repository.
 
 
 #### Dataset
@@ -60,10 +60,10 @@ The dataset used for this analysis is sourced from Kaggle: [Top Spotify Songs in
 
 ### Features
 -   **Comprehensive Data Cleaning:** Robust PostgreSQL scripts to handle missing values, inconsistencies, and out-of-range data in the raw Spotify dataset.
--   **Music Feature Analysis:** In-depth exploration of how Spotify API-derived features (e.g., danceability, loudness, explicitness) correlate with song popularity and daily rank.
+-   **Music Feature Analysis:** In depth exploration of how Spotify API derived features (e.g., danceability, loudness, explicitness) correlate with song popularity and daily rank.
 -   **Temporal Trend Analysis:** Investigate how song popularity and feature distribution evolve across months (specifically focusing on 2024 data).
 -   **Geographical Popularity Insights:** Uncover variations in musical preferences and chart performance across 72 countries and global charts.
--   **Reproducible Analysis:** Jupyter Notebooks for interactive exploration and visualization, complemented by a well-structured Python program for repeatable analysis.
+-   **Reproducible Analysis:** Jupyter Notebooks for interactive exploration and visualization, complemented by a well structured Python program for repeatable analysis.
 
 ## Part 2 : Setup
 
@@ -109,7 +109,7 @@ Subsequently, a Jupyter Notebook was used to perform data visualization, deeper 
 ### Data Cleaning 
 This phase has been, by far, the most time-consuming part of the project. A new table named spotify_songs_staging was created with all columns defined as TEXT (see -> [sql/01_create_staging_table.sql](sql/01_create_staging_table.sql)). This decision was intentional: by loading all data as text initially, we eliminated the risk of type-related loading errors and retained full flexibility during data exploration and transformation. This is a widely used approach in data processing pipelines, especially when dealing with inconsistent or messy datasets, as it allows early detection of malformed values before imposing strict type constraints.
 
-The raw data was then ingested into the staging table (see -> [sql/02_ingest_raw_data.sql](sql/02_ingest_raw_data.sql)), and a first-pass quality analysis was performed (see -> [sql/07_analize_raw_data_quality.sql](sql/07_analize_raw_data_quality.sql)). The table below summarizes the initial results:
+The raw data was then ingested into the staging table (see -> [sql/02_ingest_raw_data.sql](sql/02_ingest_raw_data.sql)), and a first pass quality analysis was performed (see -> [sql/07_analize_raw_data_quality.sql](sql/07_analize_raw_data_quality.sql)). The table below summarizes the initial results:
 
 
 | variable_name       | empty_string_count | null_count |
@@ -173,7 +173,7 @@ ALTER TABLE spotify_songs_staging
 ```
 After completing the type conversions, a consistency check was performed. It was found that some songs (identified by spotify_id) had inconsistent values for name and artists across different rows. To resolve this, those values were standardized so that each spotify_id had a unique and consistent name and artist.
 
-To address missing or out of range values, a backfilling strategy was used. This strategy applied the most recent valid (non-null and within range) value for each spotify_id to fill in missing values, limited to non-time-dependent fields. For example, audio features such as danceability, energy, and valence were filled using this method, ensuring consistent metadata across the dataset.
+To address missing or out of range values, a backfilling strategy was used. This strategy applied the most recent valid (non null and within range) value for each spotify_id to fill in missing values, limited to non time dependent fields. For example, audio features such as danceability, energy, and valence were filled using this method, ensuring consistent metadata across the dataset.
 
 All rows with missing country values were set to 'ZZ', a placeholder indicating global data. Additionally, all rows where name remained NULL after processing were removed, as the track name is considered essential for analysis.
 
@@ -318,7 +318,7 @@ Findings:
 - In contrast, less explicit songs tend to dominate popularity charts in much of Europe.
 
 #### Conclusion: What Makes a Song Popular?</br> Untangling the Chaos with a Data-Driven Approach
-This project set out to demystify the factors that drive a song's popularity using a structured and scalable data science approach. By integrating raw Spotify Top 50 charts across 72 countries with feature-rich metadata from the Spotify API, and then applying rigorous data cleaning, transformation, and correlation analyses, the project paints a nuanced picture of how various musical attributes relate to public reception.
+This project set out to demystify the factors that drive a song's popularity using a structured and scalable data science approach. By integrating raw Spotify Top 50 charts across 72 countries with feature rich metadata from the Spotify API, and then applying rigorous data cleaning, transformation, and correlation analyses, the project paints a nuanced picture of how various musical attributes relate to public reception.
 
 Several key findings emerged:
 
@@ -328,11 +328,11 @@ Several key findings emerged:
 
 - Acousticness negatively correlates with both loudness and energy, indicating that acoustic songs are generally quieter and less energetic, possibly due to their stripped-down production style.
 
-However, when it comes to dynamic performance metrics like daily chart position and popularity score, the story becomes more complex. These variables showed only weak correlations with static features. This suggests that while certain song characteristics may influence how a track feels or is structured, popularity is largely driven by external factors not captured in this dataset—such as marketing campaigns, playlist placements, social media trends, or cultural events.
+However, when it comes to dynamic performance metrics like daily chart position and popularity score, the story becomes more complex. These variables showed only weak correlations with static features. This suggests that while certain song characteristics may influence how a track feels or is structured, popularity is largely driven by external factors not captured in this dataset such as marketing campaigns, playlist placements, social media trends, or cultural events.
 
 Localized insights add another layer to the analysis. For example:
 
-- In Bulgaria (December), high-energy songs strongly predicted popularity.
+- In Bulgaria (December), high energy songs strongly predicted popularity.
 
 - In Panama (September), tracks with lower speechiness (fewer spoken words) topped the charts.
 
